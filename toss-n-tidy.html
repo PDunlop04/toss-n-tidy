@@ -919,7 +919,7 @@
 
     <section class="start-screen" id="startScreen" aria-labelledby="startTitle">
       <h2 class="start-title" id="startTitle">Ready to toss n' tidy?</h2>
-      <p class="start-intro">Two players, one front lawn, and a very suspicious raccoon. Pick your roles and jump in!</p>
+      <p class="start-intro">Pick your roles and jump in!</p>
       <div class="rules-grid">
         <article class="rule-card">
           <h2><span class="player-dot"></span> Player 1 · Child</h2>
@@ -1573,7 +1573,8 @@
         countdownNumber.textContent = "3";
         countdownNumber.style.animation = "";
         boardHint.textContent = "MOVE MOUSE OR PRESS ARROW KEYS";
-        updateStatus("Game ready.");
+        statusLine.textContent = "";
+        statusLine.className = "sr-only";
         roundClock.textContent = "1:00";
         roundClock.classList.remove("urgent");
         resizeBoard();
