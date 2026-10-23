@@ -1,0 +1,1603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f3e9">
+  <title>toss n' tidy — Front Lawn</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20352d;
+      --muted: #63776b;
+      --cream: #fffdf5;
+      --grass: #83cf61;
+      --grass-dark: #55ad48;
+      --red: #ed4b43;
+      --shadow: 0 12px 30px rgb(35 57 42 / 13%);
+    }
+
+    .result-screen {
+      position: absolute;
+      z-index: 20;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: rgb(26 43 36 / 62%);
+      backdrop-filter: blur(4px);
+    }
+    .result-screen[hidden] { display: none !important; }
+    .countdown-screen {
+      position: absolute;
+      z-index: 15;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgb(20 34 29 / 40%);
+      color: #fff;
+      pointer-events: auto;
+    }
+    .countdown-screen[hidden] { display: none !important; }
+    .countdown-number {
+      display: grid;
+      width: clamp(130px, 22vw, 240px);
+      aspect-ratio: 1;
+      place-items: center;
+      border: 8px solid #fff;
+      border-radius: 50%;
+      background: #ed4b43;
+      box-shadow: 0 0 0 14px rgb(255 255 255 / 28%), 0 16px 45px rgb(0 0 0 / 35%);
+      font-size: clamp(80px, 17vw, 170px);
+      font-weight: 1000;
+      line-height: 1;
+      animation: countdown-pop .82s cubic-bezier(.16,.85,.35,1.4) both;
+    }
+    @keyframes countdown-pop {
+      from { opacity: 0; scale: .35; }
+      60% { opacity: 1; scale: 1.12; }
+      to { opacity: 1; scale: 1; }
+    }
+    .result-card {
+      width: min(450px, 100%);
+      padding: clamp(24px, 5vw, 42px);
+      border: 4px solid #fff;
+      border-radius: 28px;
+      background: #fffdf5;
+      box-shadow: 0 18px 55px rgb(0 0 0 / 25%);
+      text-align: center;
+    }
+    .result-emoji { margin-bottom: 10px; font-size: 54px; }
+    .result-card h2 { margin: 0 0 10px; font-size: clamp(28px, 5vw, 42px); letter-spacing: -1px; }
+    .result-card p { margin: 0 0 23px; color: #63776b; font-weight: 800; line-height: 1.5; }
+    .result-card .play-button { justify-self: auto; }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      padding: clamp(12px, 2.5vw, 30px);
+      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse at 15% 5%, #fff 0, transparent 34%),
+        #f5f3e9;
+      font-family: "Trebuchet MS", "Arial Rounded MT Bold", system-ui, sans-serif;
+    }
+
+    button { font: inherit; }
+
+    .app {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 0 2px 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 46px;
+      height: 46px;
+      place-items: center;
+      border: 3px solid #fff;
+      border-radius: 15px;
+      background: #ffe175;
+      box-shadow: 0 4px 0 #e5c254;
+      font-size: 25px;
+      transform: rotate(-5deg);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 34px);
+      font-weight: 1000;
+      letter-spacing: -1.5px;
+      line-height: 1;
+    }
+
+    h1 span { color: #e44f43; }
+
+    .subtitle {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .round-label {
+      padding: 9px 14px;
+      border: 1px solid #e4e3d8;
+      border-radius: 99px;
+      background: #fffdf7;
+      color: #596c5f;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: minmax(175px, 218px) minmax(0, 1fr) minmax(175px, 218px);
+      align-items: stretch;
+      gap: clamp(12px, 1.8vw, 24px);
+    }
+
+    .panel {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      padding: 18px;
+      border: 2px solid #fff;
+      border-radius: 24px;
+      background: rgb(255 254 248 / 92%);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-kicker {
+      margin: 0;
+      color: #7b897b;
+      font-size: 11px;
+      font-weight: 1000;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .player-heading {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0;
+      font-size: 18px;
+      font-weight: 1000;
+    }
+
+    .player-dot {
+      width: 12px;
+      height: 12px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: #f2b747;
+      box-shadow: 0 0 0 2px #f2b747;
+    }
+
+    .bomb-button {
+      position: relative;
+      display: flex;
+      min-height: 190px;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 18px 12px;
+      overflow: hidden;
+      border: 0;
+      border-radius: 22px;
+      background: linear-gradient(155deg, #ff6859, #e63a35);
+      box-shadow: 0 8px 0 #b92f2c, 0 12px 20px rgb(226 56 51 / 22%);
+      color: white;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform .12s, filter .12s, box-shadow .12s;
+    }
+
+    .bomb-button:hover:not(:disabled) { filter: brightness(1.05); transform: translateY(-2px); }
+    .bomb-button:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 3px 0 #b92f2c; }
+    .bomb-button:disabled { cursor: not-allowed; filter: saturate(.55); }
+    .bomb-button.armed { animation: armed-pulse .65s ease-in-out infinite alternate; }
+    .bomb-button .bomb-icon { font-size: 43px; line-height: 1; }
+    .bomb-button .bomb-title { font-size: clamp(17px, 1.7vw, 22px); font-weight: 1000; letter-spacing: -.5px; }
+    .bomb-button .bomb-caption { font-size: 11px; font-weight: 800; opacity: .9; }
+    .bomb-button .cooldown-bar {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      height: 6px;
+      background: rgb(255 255 255 / 38%);
+      transform: scaleX(0);
+      transform-origin: left;
+    }
+
+    .hint-card {
+      padding: 12px;
+      border-radius: 14px;
+      background: #f5f3e9;
+      color: #607265;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .hint-card strong { color: var(--ink); }
+
+    .game-board {
+      position: relative;
+      min-height: 590px;
+      overflow: hidden;
+      border: 10px solid #fff;
+      border-radius: 28px;
+      background:
+        radial-gradient(ellipse at 50% 52%, rgb(205 241 145 / 42%), transparent 57%),
+        repeating-linear-gradient(0deg, transparent 0 34px, rgb(59 151 56 / 8%) 34px 37px),
+        linear-gradient(140deg, #91d96b, #70c853 60%, #62bc4d);
+      box-shadow: var(--shadow), inset 0 0 0 2px rgb(53 125 46 / 10%);
+      isolation: isolate;
+      touch-action: manipulation;
+    }
+
+    .board-title {
+      position: absolute;
+      z-index: 4;
+      top: 20px;
+      left: 50%;
+      padding: 9px 18px;
+      border: 2px solid rgb(255 255 255 / 85%);
+      border-radius: 99px;
+      background: rgb(255 255 255 / 87%);
+      box-shadow: 0 3px 10px rgb(31 87 40 / 10%);
+      font-size: 14px;
+      font-weight: 1000;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    .flower {
+      position: absolute;
+      z-index: 0;
+      color: #fff3a4;
+      font-size: 20px;
+      filter: drop-shadow(0 2px 0 rgb(72 142 54 / 20%));
+      pointer-events: none;
+      user-select: none;
+    }
+    .flower.f1 { top: 29%; left: 10%; }
+    .flower.f2 { top: 45%; right: 9%; color: #fff; font-size: 15px; }
+    .flower.f3 { bottom: 19%; left: 21%; color: #ffd9e0; font-size: 17px; }
+    .flower.f4 { right: 24%; bottom: 15%; font-size: 16px; }
+
+    .fence {
+      position: absolute;
+      z-index: 4;
+      inset: 0;
+      border: 0;
+      pointer-events: none;
+    }
+    .fence::before, .fence::after {
+      position: absolute;
+      right: 17px;
+      left: 17px;
+      height: 22px;
+      background:
+        linear-gradient(#fff 0 0) 0 2px / 100% 6px no-repeat,
+        linear-gradient(#fff 0 0) 0 13px / 100% 6px no-repeat,
+        repeating-linear-gradient(90deg, transparent 0 18px, #fff 18px 24px, transparent 24px 37px);
+      filter: drop-shadow(0 2px 0 rgb(94 138 72 / 20%));
+      content: "";
+    }
+    .fence::before { top: 0; }
+    .fence::after { bottom: 0; transform: rotate(180deg); }
+
+    .side-fence {
+      position: absolute;
+      z-index: 4;
+      top: 20px;
+      bottom: 20px;
+      width: 22px;
+      background:
+        linear-gradient(90deg, #fff 0 6px, transparent 6px 13px, #fff 13px 19px, transparent 19px) 2px 0 / 22px 100% no-repeat,
+        repeating-linear-gradient(0deg, transparent 0 18px, #fff 18px 24px, transparent 24px 37px);
+      filter: drop-shadow(2px 0 0 rgb(94 138 72 / 17%));
+      pointer-events: none;
+    }
+    .side-fence.left { left: 0; }
+    .side-fence.right { right: 0; }
+
+    .lawn-hint {
+      position: absolute;
+      z-index: 2;
+      right: 25px;
+      bottom: 28px;
+      left: 25px;
+      color: rgb(39 104 48 / 72%);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .trash-paint {
+      position: absolute;
+      z-index: 3;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .parent-token {
+      position: absolute;
+      z-index: 5;
+      display: grid;
+      width: 90px;
+      height: 96px;
+      place-items: center;
+      border: 4px solid #fff;
+      border-radius: 21px 21px 25px 25px;
+      background: #568bea;
+      box-shadow: 0 7px 0 #3769bd, 0 10px 18px rgb(39 59 70 / 23%);
+      font-size: 50px;
+      transform: translate(-50%, -50%);
+      transition: background .2s, box-shadow .2s;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .parent-token::before {
+      position: absolute;
+      top: -16px;
+      left: 50%;
+      width: 46px;
+      height: 25px;
+      border: 3px solid #fff;
+      border-radius: 14px 14px 5px 5px;
+      background: #f3bd62;
+      content: "";
+      transform: translateX(-50%);
+    }
+
+    .parent-token.frozen {
+      background: #56bd77;
+      box-shadow: 0 5px 0 #338957, 0 0 0 8px rgb(99 255 151 / 25%);
+      animation: frozen-pulse .8s ease-in-out infinite alternate;
+    }
+    .parent-token.frozen::after {
+      position: absolute;
+      right: -13px;
+      bottom: -9px;
+      content: "❄";
+      font-size: 22px;
+      transform: rotate(12deg);
+    }
+    @keyframes frozen-pulse { to { filter: brightness(1.14); } }
+    @keyframes armed-pulse { to { box-shadow: 0 8px 0 #b92f2c, 0 0 0 7px rgb(237 75 67 / 22%); } }
+
+    .lawn-bomb {
+      width: 132px;
+      min-height: 150px;
+      flex: 0 0 auto;
+      border: 3px solid #fff;
+      border-radius: 20px;
+      box-shadow: 0 7px 0 #b92f2c, 0 10px 18px rgb(226 56 51 / 25%);
+      pointer-events: auto;
+    }
+
+    .bomb-zone {
+      position: absolute;
+      z-index: 3;
+      border: 4px dashed #ef4541;
+      border-radius: 50%;
+      background: rgb(255 79 61 / 20%);
+      box-shadow: 0 0 0 5px rgb(255 255 255 / 65%), 0 7px 22px rgb(124 42 31 / 18%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .bomb-count {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      width: 52px;
+      height: 52px;
+      place-items: center;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: #ed4b43;
+      box-shadow: 0 3px 0 #b92f2c;
+      color: white;
+      font-size: 25px;
+      font-weight: 1000;
+      transform: translate(-50%, -50%);
+    }
+    .bomb-zone-label {
+      position: absolute;
+      top: calc(50% + 41px);
+      left: 50%;
+      padding: 4px 8px;
+      border-radius: 99px;
+      background: #fff;
+      color: #be3734;
+      font-size: 9px;
+      font-weight: 1000;
+      letter-spacing: .07em;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+
+    .status-line {
+      min-height: 44px;
+      padding: 12px;
+      border-radius: 13px;
+      background: #fff1dc;
+      color: #805c25;
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+    .status-line.good { background: #e5f7e3; color: #367747; }
+    .status-line.alert { background: #ffe4df; color: #ad3934; }
+
+    .parent-preview {
+      display: grid;
+      min-height: 126px;
+      place-items: center;
+      border-radius: 18px;
+      background: linear-gradient(145deg, #edf4df, #e0efd0);
+    }
+    .parent-preview .parent-token {
+      position: relative;
+      top: 4px;
+      left: auto;
+      width: 66px;
+      height: 70px;
+      transform: none;
+    }
+    .parent-preview .parent-token.frozen::after { right: -15px; }
+
+    .parent-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .status-pill {
+      padding: 5px 8px;
+      border-radius: 99px;
+      background: #dff4df;
+      color: #38804b;
+      font-size: 10px;
+      font-weight: 1000;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .status-pill.frozen { background: #d8f7e2; color: #27784b; }
+
+    .controls {
+      margin-top: 3px;
+      padding: 12px;
+      border-radius: 14px;
+      background: #f5f3e9;
+      color: #607265;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1.6;
+    }
+    .key {
+      display: inline-grid;
+      min-width: 22px;
+      height: 22px;
+      margin: 0 1px;
+      place-items: center;
+      border: 1px solid #d2d7cc;
+      border-radius: 5px;
+      background: #fff;
+      box-shadow: 0 2px 0 #d2d7cc;
+      color: #43594b;
+      font-size: 10px;
+      font-weight: 1000;
+    }
+
+    .footer-note {
+      margin: 14px 4px 0;
+      color: #879187;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    @media (max-width: 880px) {
+      body { padding: 12px; }
+      .game-layout {
+        grid-template-columns: minmax(126px, 155px) minmax(0, 1fr);
+      }
+      .game-board { min-height: 540px; grid-column: 1 / -1; grid-row: 1; }
+      .panel { padding: 14px; }
+      .bomb-button { min-height: 146px; }
+      .parent-panel { grid-column: 2; }
+    }
+
+    @media (max-width: 560px) {
+      .topbar { align-items: flex-start; }
+      .round-label { padding: 7px 9px; font-size: 9px; }
+      .brand-mark { width: 39px; height: 39px; font-size: 22px; }
+      .game-layout { grid-template-columns: 1fr 1fr; gap: 9px; }
+      .game-board { min-height: min(62vh, 520px); border-width: 7px; border-radius: 21px; }
+      .panel { gap: 9px; padding: 11px; border-radius: 18px; }
+      .bomb-button { min-height: 112px; border-radius: 16px; }
+      .bomb-button .bomb-icon { font-size: 28px; }
+      .bomb-button .bomb-title { font-size: 16px; }
+      .bomb-button .bomb-caption { font-size: 9px; }
+      .hint-card, .controls { padding: 9px; font-size: 10px; }
+      .player-heading { font-size: 14px; }
+      .panel-kicker { font-size: 9px; }
+      .parent-preview { min-height: 86px; }
+      .parent-preview .parent-token { scale: .82; }
+      .parent-panel { grid-column: 2; }
+      .board-title { top: 14px; padding: 7px 12px; font-size: 11px; }
+      .lawn-hint { bottom: 18px; font-size: 9px; }
+      .lawn-bomb { width: 103px; min-height: 124px; gap: 3px; padding: 12px 6px; border-radius: 15px; }
+      .lawn-bomb .bomb-icon { font-size: 29px; }
+      .lawn-bomb .bomb-title { font-size: 14px; }
+      .lawn-bomb .bomb-caption { font-size: 8px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    .start-screen {
+      display: grid;
+      min-height: calc(100vh - 110px);
+      place-content: center;
+      gap: 26px;
+      padding: 28px 16px 54px;
+    }
+
+    .start-title {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 56px);
+      letter-spacing: -2px;
+      text-align: center;
+    }
+
+    .start-intro {
+      max-width: 570px;
+      margin: -16px auto 0;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    .rules-grid {
+      display: grid;
+      width: min(820px, 100%);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin: 0 auto;
+    }
+
+    .rule-card {
+      padding: clamp(18px, 3vw, 28px);
+      border: 2px solid #fff;
+      border-radius: 24px;
+      background: rgb(255 254 248 / 94%);
+      box-shadow: var(--shadow);
+    }
+
+    .rule-card h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 13px;
+      font-size: clamp(18px, 2.5vw, 23px);
+    }
+
+    .rule-card p {
+      margin: 0;
+      color: #607265;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.65;
+    }
+    .rule-card p + p { margin-top: 10px; }
+
+    .play-button {
+      justify-self: center;
+      min-width: 200px;
+      padding: 15px 34px;
+      border: 3px solid #fff;
+      border-radius: 18px;
+      background: linear-gradient(155deg, #70c853, #4da842);
+      box-shadow: 0 7px 0 #368337, 0 12px 24px rgb(53 131 55 / 20%);
+      color: #fff;
+      cursor: pointer;
+      font-size: 22px;
+      font-weight: 1000;
+      letter-spacing: .04em;
+      touch-action: manipulation;
+    }
+    .play-button:hover { filter: brightness(1.05); transform: translateY(-2px); }
+    .play-button:active { transform: translateY(4px); box-shadow: 0 3px 0 #368337; }
+
+    .play-screen[hidden] { display: none !important; }
+    .play-screen {
+      position: fixed;
+      z-index: 10;
+      inset: 0;
+      display: grid;
+      grid-template-columns: clamp(118px, 17vw, 228px) minmax(0, 1fr);
+      gap: 0;
+      overflow: hidden;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 72px, rgb(255 255 255 / 7%) 72px 74px),
+        repeating-linear-gradient(90deg, transparent 0 92px, rgb(255 255 255 / 5%) 92px 94px),
+        linear-gradient(145deg, #788188, #656e75 55%, #747d83);
+    }
+
+    .roadside {
+      position: relative;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(22px, 4vh, 42px);
+      padding: 20px 10px;
+      border-right: 8px solid #e9e9df;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 70px, rgb(255 255 255 / 5%) 70px 72px),
+        linear-gradient(90deg, #707980, #838c91 52%, #707980);
+      box-shadow: 5px 0 0 rgb(26 42 40 / 12%);
+    }
+
+    .roadside::before, .roadside::after {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: rgb(248 222 137 / 65%);
+      content: "";
+    }
+    .roadside::before { left: 9px; }
+    .roadside::after { right: 4px; background: rgb(255 255 255 / 75%); }
+
+    .roadside .lawn-bomb {
+      z-index: 2;
+      width: min(172px, calc(100% - 12px));
+      min-height: clamp(135px, 23vh, 190px);
+      padding: 12px 8px;
+      border-radius: 19px;
+    }
+    .roadside .lawn-bomb .bomb-icon { font-size: clamp(31px, 4vw, 48px); }
+    .roadside .lawn-bomb .bomb-title { font-size: clamp(14px, 1.8vw, 21px); }
+    .roadside .lawn-bomb .bomb-caption { font-size: clamp(8px, 1vw, 11px); }
+
+    .roadside-raccoon {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      color: #f9f8ef;
+      font-size: 10px;
+      font-weight: 1000;
+      letter-spacing: .1em;
+      text-align: center;
+      text-shadow: 0 2px 3px rgb(25 35 38 / 45%);
+    }
+
+    .roadside-can {
+      display: grid;
+      width: clamp(78px, 9vw, 118px);
+      height: clamp(78px, 8vw, 108px);
+      place-items: center;
+      border: 5px solid #f0f3ed;
+      border-top-width: 10px;
+      border-radius: 10px 10px 22px 22px;
+      background: linear-gradient(115deg, #85949a, #65767e);
+      box-shadow: 0 8px 0 #4c5a61, 0 12px 18px rgb(20 32 35 / 25%);
+      font-size: clamp(48px, 6vw, 72px);
+      transform: rotate(-4deg);
+    }
+    .roadside-can::before {
+      position: absolute;
+      width: calc(clamp(78px, 9vw, 118px) + 15px);
+      height: 11px;
+      margin-top: -104px;
+      border: 3px solid #f8faf5;
+      border-radius: 7px;
+      background: #596970;
+      content: "";
+    }
+
+    body.playing { min-width: 320px; min-height: 0; padding: 0; overflow: hidden; }
+    body.playing .app { width: 100%; height: 100%; margin: 0; }
+    body.playing .topbar, body.playing .start-screen { display: none; }
+
+    .play-screen .game-board {
+      width: auto;
+      height: 100%;
+      min-height: 0;
+      grid-column: auto;
+      grid-row: auto;
+      border: 10px solid #fff;
+      border-radius: 0;
+      box-shadow: inset 0 0 0 2px rgb(53 125 46 / 10%);
+      touch-action: none;
+    }
+
+    .play-screen .fence::before { top: 0; }
+    .play-screen .fence::after { bottom: 0; }
+    .play-screen .board-title { top: 82px; }
+
+    .game-hud {
+      position: absolute;
+      z-index: 6;
+      top: 15px;
+      right: 20px;
+      left: 20px;
+      pointer-events: none;
+    }
+
+    .lawn-progress {
+      width: min(680px, 100%);
+      margin: 0 auto;
+      padding: 8px 13px 11px;
+      border: 2px solid #fff;
+      border-radius: 17px;
+      background: rgb(255 253 245 / 94%);
+      box-shadow: 0 5px 16px rgb(35 57 42 / 15%);
+    }
+
+    .progress-labels {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-size: 11px;
+      font-weight: 1000;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .progress-labels > span {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .progress-labels > span:last-child { justify-content: flex-end; text-align: right; }
+    .round-clock {
+      padding: 4px 9px;
+      border-radius: 99px;
+      background: #edf0e7;
+      color: #33453b;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .03em;
+    }
+    .round-clock.urgent {
+      background: #d93636;
+      color: #fff;
+      box-shadow: 0 0 0 3px rgb(217 54 54 / 20%);
+      animation: clock-flash .55s steps(2, end) infinite;
+    }
+    @keyframes clock-flash {
+      50% { background: #fff; color: #c72222; box-shadow: 0 0 0 4px rgb(217 54 54 / 36%); }
+    }
+    .mess-key { color: #555d62; }
+    .clear-key { color: #2864bb; }
+    .progress-swatch {
+      width: 10px;
+      height: 10px;
+      flex: 0 0 auto;
+      border-radius: 3px;
+    }
+    .mess-key .progress-swatch { background: #858d92; }
+    .clear-key .progress-swatch { background: #4c8fee; }
+
+    .progress-track {
+      display: flex;
+      width: 100%;
+      height: 17px;
+      overflow: hidden;
+      border: 2px solid #d6ddd6;
+      border-radius: 99px;
+      background: #4c8fee;
+      box-shadow: inset 0 2px 4px rgb(30 48 45 / 16%);
+    }
+    .progress-mess {
+      width: 0%;
+      background: repeating-linear-gradient(135deg, #858d92 0 9px, #747d82 9px 14px);
+      transition: width .14s ease-out;
+    }
+    .progress-clear {
+      flex: 1;
+      background: linear-gradient(90deg, #5e9cf2, #3d7ee0);
+      transition: flex .14s ease-out;
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      clip-path: inset(50%);
+      border: 0;
+    }
+
+    .play-screen .lawn-hint {
+      z-index: 6;
+      bottom: 17px;
+      padding: 7px;
+      border-radius: 99px;
+      background: rgb(255 255 255 / 78%);
+    }
+    .play-screen .game-board.bomb-armed .lawn-hint {
+      background: #fff4a8;
+      box-shadow: 0 0 0 4px rgb(255 255 255 / 80%), 0 5px 16px rgb(90 54 25 / 22%);
+      color: #8d3428;
+      animation: drop-hint-pulse .65s ease-in-out infinite alternate;
+    }
+    @keyframes drop-hint-pulse {
+      to { box-shadow: 0 0 0 8px rgb(255 255 255 / 70%), 0 6px 19px rgb(90 54 25 / 30%); }
+    }
+
+    @media (max-width: 560px) {
+      .start-screen { min-height: calc(100vh - 90px); gap: 20px; padding: 22px 4px 34px; }
+      .rules-grid { grid-template-columns: 1fr; gap: 10px; }
+      .rule-card { padding: 15px 17px; border-radius: 18px; }
+      .rule-card h2 { margin-bottom: 8px; font-size: 18px; }
+      .rule-card p { font-size: 12px; line-height: 1.5; }
+      .play-button { min-width: 175px; padding: 12px 28px; font-size: 19px; }
+      .play-screen { grid-template-columns: 108px minmax(0, 1fr); }
+      .roadside { gap: 22px; padding: 12px 7px; border-right-width: 6px; }
+      .roadside .lawn-bomb { width: 91px; min-height: 125px; padding: 10px 4px; }
+      .roadside .lawn-bomb .bomb-title { font-size: 13px; }
+      .roadside .lawn-bomb .bomb-caption { font-size: 8px; }
+      .roadside-can { width: 66px; height: 66px; font-size: 43px; }
+      .roadside-can::before { width: 78px; height: 9px; margin-top: -72px; }
+      .roadside-raccoon { font-size: 8px; }
+      .play-screen .game-board { border-width: 7px; }
+      .board-title { top: 14px; padding: 7px 11px; font-size: 11px; }
+      .game-hud { top: 9px; right: 9px; left: 9px; }
+      .lawn-progress { padding: 7px 9px 9px; border-radius: 13px; }
+      .progress-labels { gap: 5px; margin-bottom: 5px; font-size: 7px; }
+      .progress-swatch { width: 8px; height: 8px; }
+      .progress-track { height: 14px; }
+      .round-clock { padding: 3px 6px; font-size: 10px; }
+      .play-screen .board-title { top: 67px; }
+      .play-screen .lawn-hint { right: 8px; bottom: 10px; left: 8px; font-size: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">🧹</div>
+        <div>
+          <h1>toss n' <span>tidy</span></h1>
+          <p class="subtitle">A little lawn mischief for two</p>
+        </div>
+      </div>
+      <div class="round-label">2 players · 1 lawn</div>
+    </header>
+
+    <section class="start-screen" id="startScreen" aria-labelledby="startTitle">
+      <h2 class="start-title" id="startTitle">Ready to toss n' tidy?</h2>
+      <p class="start-intro">Two players, one front lawn, and a very suspicious raccoon. Pick your roles and jump in!</p>
+      <div class="rules-grid">
+        <article class="rule-card">
+          <h2><span class="player-dot"></span> Player 1 · Child</h2>
+          <p>Move your mouse over the grass to toss trash and make a mess.</p>
+          <p>Tap <strong>STINK BOMB</strong> on the roadside, then tap the lawn to choose where it lands.</p>
+        </article>
+        <article class="rule-card">
+          <h2><span class="player-dot" style="background:#568bea;box-shadow:0 0 0 2px #568bea"></span> Player 2 · Parent</h2>
+          <p>Use the arrow keys to move. Run over trash to clean it up.</p>
+          <p>When a stink bomb lands, get out of its circle before the countdown ends to avoid being frozen!</p>
+        </article>
+      </div>
+      <button class="play-button" id="playButton" type="button">▶ PLAY</button>
+    </section>
+
+    <section class="play-screen" id="playScreen" aria-label="Toss n' Tidy game" hidden>
+      <aside class="roadside" aria-label="Roadside">
+        <button class="bomb-button lawn-bomb" id="bombButton" type="button" aria-label="Activate Stink Bomb">
+          <span class="bomb-icon" aria-hidden="true">💣</span>
+          <span class="bomb-title" id="bombTitle">STINK BOMB</span>
+          <span class="bomb-caption" id="bombCaption">Tap to arm · 15s cooldown</span>
+          <span class="cooldown-bar" id="cooldownBar"></span>
+        </button>
+        <div class="roadside-raccoon" aria-label="Raccoon player">
+          <span class="roadside-can" aria-hidden="true">🦝</span>
+          <span>RACCOON HQ</span>
+        </div>
+      </aside>
+      <div class="game-board" id="gameBoard" role="application" aria-label="Front Lawn play area">
+        <div class="board-title">🌿 Front Lawn 🌿</div>
+        <span class="flower f1" aria-hidden="true">✿</span>
+        <span class="flower f2" aria-hidden="true">✿</span>
+        <span class="flower f3" aria-hidden="true">✿</span>
+        <span class="flower f4" aria-hidden="true">✿</span>
+        <canvas class="trash-paint" id="trashPaint" aria-hidden="true"></canvas>
+        <div class="fence" aria-hidden="true"></div>
+        <div class="side-fence left" aria-hidden="true"></div>
+        <div class="side-fence right" aria-hidden="true"></div>
+        <div class="parent-token" id="parentToken" aria-label="Parent"></div>
+        <div class="game-hud">
+          <div class="lawn-progress" role="group" aria-label="Lawn coverage progress">
+            <div class="progress-labels">
+              <span class="mess-key"><i class="progress-swatch" aria-hidden="true"></i>PLAYER 1 · MESS <span id="messPercent">0%</span></span>
+              <span class="round-clock" id="roundClock" aria-label="Time remaining">1:00</span>
+              <span class="clear-key"><span id="clearPercent">100%</span> PLAYER 2 · CLEAR<i class="progress-swatch" aria-hidden="true"></i></span>
+            </div>
+            <div class="progress-track" role="meter" aria-label="Lawn coverage: mess and clear" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressTrack">
+              <span class="progress-mess" id="progressMess"></span>
+              <span class="progress-clear" id="progressClear"></span>
+            </div>
+          </div>
+          <div class="sr-only" id="statusLine" role="status" aria-live="polite">Game ready.</div>
+          <span class="sr-only" id="childHint">Move the mouse over grass to toss trash. Tap the lawn to throw a piece.</span>
+        </div>
+        <div class="lawn-hint" id="boardHint">MOVE MOUSE OR PRESS ARROW KEYS</div>
+      </div>
+      <div class="result-screen" id="resultScreen" role="dialog" aria-modal="true" aria-labelledby="resultTitle" hidden>
+        <div class="result-card">
+          <div class="result-emoji" id="resultEmoji" aria-hidden="true">🏆</div>
+          <h2 id="resultTitle">Player wins!</h2>
+          <p id="resultMessage"></p>
+          <button class="play-button" id="playAgainButton" type="button">↻ PLAY AGAIN</button>
+        </div>
+      </div>
+      <div class="countdown-screen" id="countdownScreen" role="status" aria-live="assertive" hidden>
+        <div class="countdown-number" id="countdownNumber">3</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const board = document.getElementById("gameBoard");
+      const parentToken = document.getElementById("parentToken");
+      const trashPaint = document.getElementById("trashPaint");
+      const paintContext = trashPaint.getContext("2d");
+      const bombButton = document.getElementById("bombButton");
+      const bombTitle = document.getElementById("bombTitle");
+      const bombCaption = document.getElementById("bombCaption");
+      const cooldownBar = document.getElementById("cooldownBar");
+      const childHint = document.getElementById("childHint");
+      const boardHint = document.getElementById("boardHint");
+      const statusLine = document.getElementById("statusLine");
+      const progressMess = document.getElementById("progressMess");
+      const progressClear = document.getElementById("progressClear");
+      const messPercent = document.getElementById("messPercent");
+      const clearPercent = document.getElementById("clearPercent");
+      const progressTrack = document.getElementById("progressTrack");
+      const roundClock = document.getElementById("roundClock");
+      const resultScreen = document.getElementById("resultScreen");
+      const resultEmoji = document.getElementById("resultEmoji");
+      const resultTitle = document.getElementById("resultTitle");
+      const resultMessage = document.getElementById("resultMessage");
+      const countdownScreen = document.getElementById("countdownScreen");
+      const countdownNumber = document.getElementById("countdownNumber");
+      const app = document.getElementById("app");
+      const startScreen = document.getElementById("startScreen");
+      const playScreen = document.getElementById("playScreen");
+      const playButton = document.getElementById("playButton");
+      const playAgainButton = document.getElementById("playAgainButton");
+
+      const state = {
+        x: 0,
+        y: 0,
+        targetX: 0,
+        targetY: 0,
+        keys: new Set(),
+        lastPaintPoint: null,
+        hasSeededTrash: false,
+        coverage: { columns: 0, rows: 0, mask: new Uint8Array(0), covered: 0 },
+        bomb: null,
+        bombArmed: false,
+        cooldownUntil: 0,
+        frozenUntil: 0,
+        roundEndsAt: 0,
+        countdownEndsAt: 0,
+        countdownValue: "",
+        gameFinished: false,
+        lastFrame: 0,
+        lastCleanMessage: 0
+      };
+
+      const tokenSize = 90;
+      const speed = 560;
+      const coverageCellSize = 4;
+      const trashRadius = 8.5;
+      const roundLength = 60000;
+      const cooldownLength = 15000;
+      const freezeLength = 5000;
+      const bombCountdown = 5000;
+
+      function bounds() {
+        return { width: board.clientWidth, height: board.clientHeight };
+      }
+
+      function clampPosition(x, y) {
+        const { width, height } = bounds();
+        const inset = tokenSize / 2 + 8;
+        return {
+          x: Math.max(inset, Math.min(width - inset, x)),
+          y: Math.max(86, Math.min(height - inset - 12, y))
+        };
+      }
+
+      function setParentPosition(x, y) {
+        const position = clampPosition(x, y);
+        state.x = position.x;
+        state.y = position.y;
+        parentToken.style.left = `${state.x}px`;
+        parentToken.style.top = `${state.y}px`;
+      }
+
+      function updateStatus(message, kind = "") {
+        statusLine.textContent = message;
+        statusLine.className = `status-line${kind ? ` ${kind}` : ""}`;
+      }
+
+      function paintCell(column, row, enabled) {
+        const index = row * state.coverage.columns + column;
+        if (Boolean(state.coverage.mask[index]) === enabled) return;
+        state.coverage.mask[index] = Number(enabled);
+        state.coverage.covered += enabled ? 1 : -1;
+        const cellSize = coverageCellSize;
+        const x = column * cellSize;
+        const y = row * cellSize;
+        if (!enabled) {
+          paintContext.clearRect(x, y, cellSize + 1, cellSize + 1);
+          return;
+        }
+        drawTrashCell(column, row);
+      }
+
+      function drawTrashCell(column, row) {
+        const cellSize = coverageCellSize;
+        const x = column * cellSize;
+        const y = row * cellSize;
+        const shade = (column * 17 + row * 31 + column * row * 7) % 5;
+        paintContext.fillStyle = ["#81766b", "#8f8174", "#786f67", "#998a7b", "#887a6e"][shade];
+        paintContext.fillRect(x, y, cellSize + 0.5, cellSize + 0.5);
+      }
+
+      function brushAt(x, y, radius, enabled) {
+        const cellSize = coverageCellSize;
+        const minColumn = Math.max(0, Math.floor((x - radius) / cellSize));
+        const maxColumn = Math.min(state.coverage.columns - 1, Math.floor((x + radius) / cellSize));
+        const minRow = Math.max(0, Math.floor((y - radius) / cellSize));
+        const maxRow = Math.min(state.coverage.rows - 1, Math.floor((y + radius) / cellSize));
+        let changed = false;
+        for (let row = minRow; row <= maxRow; row++) {
+          for (let column = minColumn; column <= maxColumn; column++) {
+            const centerX = (column + 0.5) * cellSize;
+            const centerY = (row + 0.5) * cellSize;
+            const index = row * state.coverage.columns + column;
+            if (Math.hypot(centerX - x, centerY - y) <= radius && Boolean(state.coverage.mask[index]) !== enabled) {
+              paintCell(column, row, enabled);
+              changed = true;
+            }
+          }
+        }
+        return changed;
+      }
+
+      function paintStroke(start, end) {
+        const distance = Math.hypot(end.x - start.x, end.y - start.y);
+        const steps = Math.max(1, Math.ceil(distance / (trashRadius * 0.35)));
+        let changed = false;
+        for (let step = 0; step <= steps; step++) {
+          const progress = step / steps;
+          const x = start.x + (end.x - start.x) * progress;
+          const y = start.y + (end.y - start.y) * progress;
+          changed = brushAt(x, y, trashRadius, true) || changed;
+        }
+        if (changed) updateProgress();
+      }
+
+      function eraseParentTrail(start, end) {
+        const distance = Math.hypot(end.x - start.x, end.y - start.y);
+        if (distance < 1) return;
+        const steps = Math.max(1, Math.ceil(distance / (coverageCellSize * 2)));
+        let changed = false;
+        for (let step = 0; step <= steps; step++) {
+          const progress = step / steps;
+          const x = start.x + (end.x - start.x) * progress;
+          const y = start.y + (end.y - start.y) * progress;
+          changed = brushAt(x, y, tokenSize * 0.66, false) || changed;
+        }
+        if (changed) updateProgress();
+      }
+
+      function updateProgress() {
+        const total = state.coverage.columns * state.coverage.rows;
+        const mess = total ? Math.min(100, state.coverage.covered / total * 100) : 0;
+        const clear = 100 - mess;
+        const formatPercent = value => `${value === 0 || value === 100 ? Math.round(value) : value.toFixed(1)}%`;
+        progressMess.style.width = `${mess}%`;
+        progressClear.style.flex = `${clear}`;
+        messPercent.textContent = formatPercent(mess);
+        clearPercent.textContent = formatPercent(clear);
+        progressTrack.setAttribute("aria-valuenow", mess.toFixed(1));
+        progressTrack.setAttribute("aria-valuetext", `${formatPercent(mess)} mess, ${formatPercent(clear)} clear`);
+      }
+
+      function updateRoundClock(now) {
+        if (state.countdownEndsAt) {
+          const countdownRemaining = Math.max(0, state.countdownEndsAt - now);
+          if (countdownRemaining > 0) {
+            countdownScreen.hidden = false;
+            const value = String(Math.ceil(countdownRemaining / 1000));
+            if (state.countdownValue !== value) {
+              state.countdownValue = value;
+              countdownNumber.textContent = value;
+              countdownNumber.style.animation = "none";
+              void countdownNumber.offsetWidth;
+              countdownNumber.style.animation = "";
+            }
+            return;
+          }
+          state.countdownEndsAt = 0;
+          state.countdownValue = "";
+          countdownScreen.hidden = true;
+          state.roundEndsAt = now + roundLength;
+        }
+        if (!state.roundEndsAt) return;
+        const remaining = Math.max(0, state.roundEndsAt - now);
+        const totalSeconds = Math.ceil(remaining / 1000);
+        roundClock.textContent = `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+        roundClock.classList.toggle("urgent", remaining > 0 && remaining <= 10000);
+        if (remaining === 0 && !state.gameFinished) finishRound();
+      }
+
+      function finishRound() {
+        if (state.gameFinished) return;
+        state.gameFinished = true;
+        state.keys.clear();
+        state.lastPaintPoint = null;
+        state.bombArmed = false;
+        board.classList.remove("bomb-armed");
+        bombButton.classList.remove("armed");
+        bombButton.disabled = true;
+        if (state.bomb) {
+          state.bomb.element.remove();
+          state.bomb = null;
+        }
+
+        const total = state.coverage.columns * state.coverage.rows;
+        const mess = total ? state.coverage.covered / total : 0;
+        const clear = 1 - mess;
+        const formatPercent = value => `${(value * 100).toFixed(1)}%`;
+        if (Math.abs(mess - clear) < 1 / total) {
+          resultEmoji.textContent = "🤝";
+          resultTitle.textContent = "It's a tie!";
+          resultMessage.textContent = `Both players finished evenly: ${formatPercent(mess)} of the lawn was covered in trash and ${formatPercent(clear)} was clear.`;
+        } else if (mess > clear) {
+          resultEmoji.textContent = "🗑️";
+          resultTitle.textContent = "Player 1 wins!";
+          resultMessage.textContent = `Trash covered ${formatPercent(mess)} of the lawn, beating the Parent's ${formatPercent(clear)} clear area.`;
+        } else {
+          resultEmoji.textContent = "🧹";
+          resultTitle.textContent = "Player 2 wins!";
+          resultMessage.textContent = `The Parent cleared ${formatPercent(clear)} of the lawn. Trash covered ${formatPercent(mess)}.`;
+        }
+        resultScreen.hidden = false;
+        playAgainButton.focus();
+      }
+
+      function rebuildCoverage() {
+        const { width, height } = bounds();
+        const oldColumns = state.coverage.columns;
+        const oldRows = state.coverage.rows;
+        const oldMask = state.coverage.mask;
+        state.coverage.columns = Math.ceil(width / coverageCellSize);
+        state.coverage.rows = Math.ceil(height / coverageCellSize);
+        state.coverage.mask = new Uint8Array(state.coverage.columns * state.coverage.rows);
+        state.coverage.covered = 0;
+        const pixelRatio = window.devicePixelRatio || 1;
+        trashPaint.width = Math.ceil(width * pixelRatio);
+        trashPaint.height = Math.ceil(height * pixelRatio);
+        paintContext.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+        if (oldMask.length) {
+          for (let row = 0; row < state.coverage.rows; row++) {
+            for (let column = 0; column < state.coverage.columns; column++) {
+              const oldColumn = Math.min(oldColumns - 1, Math.floor((column + 0.5) * oldColumns / state.coverage.columns));
+              const oldRow = Math.min(oldRows - 1, Math.floor((row + 0.5) * oldRows / state.coverage.rows));
+              const index = row * state.coverage.columns + column;
+              if (oldMask[oldRow * oldColumns + oldColumn]) {
+                state.coverage.mask[index] = 1;
+                state.coverage.covered++;
+              }
+            }
+          }
+          renderAllPaint();
+        }
+        updateProgress();
+      }
+
+      function renderAllPaint() {
+        paintContext.clearRect(0, 0, trashPaint.width, trashPaint.height);
+        for (let row = 0; row < state.coverage.rows; row++) {
+          for (let column = 0; column < state.coverage.columns; column++) {
+            if (state.coverage.mask[row * state.coverage.columns + column]) drawTrashCell(column, row);
+          }
+        }
+      }
+
+      function seedStartingTrash() {
+        if (state.hasSeededTrash) return;
+        state.hasSeededTrash = true;
+        const { width, height } = bounds();
+        const totalCells = state.coverage.columns * state.coverage.rows;
+        for (let row = 0; row < state.coverage.rows; row++) {
+          const y = row * coverageCellSize;
+          const edge = width * 0.5 + Math.sin(y * 0.025) * 16 + Math.sin(y * 0.008) * 11;
+          for (let column = 0; column < state.coverage.columns; column++) {
+            const x = (column + 0.5) * coverageCellSize;
+            if (x < edge) {
+              const index = row * state.coverage.columns + column;
+              state.coverage.mask[index] = 1;
+              state.coverage.covered++;
+            }
+          }
+        }
+        const targetCovered = Math.round(totalCells / 2);
+        let difference = state.coverage.covered - targetCovered;
+        if (difference > 0) {
+          for (let row = 0; row < state.coverage.rows && difference > 0; row++) {
+            for (let column = state.coverage.columns - 1; column >= 0 && difference > 0; column--) {
+              const index = row * state.coverage.columns + column;
+              if (state.coverage.mask[index]) {
+                paintCell(column, row, false);
+                difference--;
+              }
+            }
+          }
+        } else if (difference < 0) {
+          for (let row = 0; row < state.coverage.rows && difference < 0; row++) {
+            for (let column = 0; column < state.coverage.columns && difference < 0; column++) {
+              const index = row * state.coverage.columns + column;
+              if (!state.coverage.mask[index]) {
+                paintCell(column, row, true);
+                difference++;
+              }
+            }
+          }
+        }
+        renderAllPaint();
+        if (totalCells) updateProgress();
+        placeParentOnClearGrass();
+      }
+
+      function placeParentOnClearGrass() {
+        const { width, height } = bounds();
+        const maxX = width - tokenSize / 2 - 8;
+        const minX = tokenSize / 2 + 8;
+        const minY = 86;
+        const maxY = height - tokenSize / 2 - 12;
+        const preferredY = clampPosition(width * 0.9, height * 0.58).y;
+        const cleanRadius = tokenSize * 0.66;
+        for (let x = maxX; x >= Math.max(minX, width * 0.5); x -= 18) {
+          for (let offset = 0; offset <= maxY - minY; offset += 18) {
+            const yOptions = offset === 0 ? [preferredY] : [preferredY + offset, preferredY - offset];
+            for (const y of yOptions) {
+              if (y < minY || y > maxY) continue;
+              const column = Math.floor(x / coverageCellSize);
+              const row = Math.floor(y / coverageCellSize);
+              const index = row * state.coverage.columns + column;
+              if (!state.coverage.mask[index]) {
+                setParentPosition(x, y);
+                state.targetX = x;
+                state.targetY = y;
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      function renderBomb() {
+        const now = performance.now();
+        if (!state.bomb) return;
+        const elapsed = now - state.bomb.startedAt;
+        const seconds = Math.max(0, Math.ceil((bombCountdown - elapsed) / 1000));
+        state.bomb.counter.textContent = String(seconds);
+        if (elapsed >= bombCountdown) {
+          const hit = Math.hypot(state.x - state.bomb.x, state.y - state.bomb.y) <= state.bomb.radius;
+          state.bomb.element.remove();
+          state.bomb = null;
+          childHint.innerHTML = "Move the mouse over grass to toss <strong>trash</strong>. Tap the lawn to toss on touch.";
+          if (hit) {
+            state.frozenUntil = now + freezeLength;
+            state.keys.clear();
+            parentToken.classList.add("frozen");
+            boardHint.textContent = "PARENT FROZEN!";
+            updateStatus("SPLAT! Parent is frozen for 5 seconds!", "alert");
+          } else {
+            boardHint.textContent = "MOVE MOUSE OR PRESS ARROW KEYS";
+            updateStatus("Phew! Parent escaped the stink cloud.", "good");
+          }
+        }
+      }
+
+      function dropBomb(x, y) {
+        const { width, height } = bounds();
+        const radius = Math.min(width, height) * 0.25;
+        const px = Math.max(radius + 8, Math.min(width - radius - 8, x));
+        const py = Math.max(radius + 28, Math.min(height - radius - 18, y));
+        const zone = document.createElement("div");
+        zone.className = "bomb-zone";
+        zone.style.width = `${radius * 2}px`;
+        zone.style.height = `${radius * 2}px`;
+        zone.style.left = `${px}px`;
+        zone.style.top = `${py}px`;
+        const counter = document.createElement("span");
+        counter.className = "bomb-count";
+        const label = document.createElement("span");
+        label.className = "bomb-zone-label";
+        label.textContent = "STINK ZONE";
+        zone.append(counter, label);
+        board.appendChild(zone);
+        state.bomb = { element: zone, counter, x: px, y: py, radius, startedAt: performance.now() };
+        state.bombArmed = false;
+        board.classList.remove("bomb-armed");
+        state.cooldownUntil = performance.now() + cooldownLength;
+        bombButton.classList.remove("armed");
+        bombButton.setAttribute("aria-label", "Stink Bomb cooling down");
+        bombCaption.textContent = "15s cooldown";
+        childHint.innerHTML = "Bomb dropped! Parent: <strong>get out of the circle</strong> before it counts down.";
+        boardHint.textContent = "GET OUT OF THE STINK ZONE!";
+        updateStatus("Stink bomb dropped! Parent, escape the red circle!", "alert");
+      }
+
+      function armBomb() {
+        if (state.countdownEndsAt > performance.now() || state.gameFinished) return;
+        if (performance.now() < state.cooldownUntil) return;
+        if (state.bombArmed) {
+          state.bombArmed = false;
+          bombButton.classList.remove("armed");
+          board.classList.remove("bomb-armed");
+          bombTitle.textContent = "STINK BOMB";
+          bombCaption.textContent = "Tap to arm · 15s cooldown";
+          childHint.innerHTML = "Move the mouse over grass to toss <strong>trash</strong>. Tap the lawn to toss on touch.";
+          boardHint.textContent = "MOVE MOUSE OR PRESS ARROW KEYS";
+          updateStatus("Bomb cancelled. Child, toss some trash!", "");
+          return;
+        }
+        state.bombArmed = true;
+        bombButton.classList.add("armed");
+        bombTitle.textContent = "PICK A SPOT!";
+        bombCaption.textContent = "TAP LAWN TO DROP!";
+        board.classList.add("bomb-armed");
+        childHint.innerHTML = "<strong>PLAYER 1: TAP THE LAWN TO DROP YOUR STINK BOMB!</strong>";
+        boardHint.textContent = "PLAYER 1: TAP LAWN TO DROP BOMB!";
+        updateStatus("Bomb armed — Player 1, tap anywhere on the lawn to drop it!", "alert");
+      }
+
+      function updateCooldown(now) {
+        const remaining = Math.max(0, state.cooldownUntil - now);
+        if (remaining <= 0) {
+          bombButton.disabled = false;
+          bombButton.setAttribute("aria-label", "Activate Stink Bomb");
+          bombTitle.textContent = "STINK BOMB";
+          bombCaption.textContent = "Tap to arm · 15s cooldown";
+          cooldownBar.style.transform = "scaleX(0)";
+        } else {
+          bombButton.disabled = true;
+          bombTitle.textContent = `${(remaining / 1000).toFixed(1)}s`;
+          bombCaption.textContent = "RECHARGING...";
+          cooldownBar.style.transform = `scaleX(${1 - remaining / cooldownLength})`;
+        }
+      }
+
+      function moveTowardTarget(dt) {
+        const dx = state.targetX - state.x;
+        const dy = state.targetY - state.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance > 2) {
+          const step = Math.min(distance, speed * dt);
+          setParentPosition(state.x + dx / distance * step, state.y + dy / distance * step);
+        }
+      }
+
+      function frame(timestamp) {
+        const dt = Math.min((timestamp - (state.lastFrame || timestamp)) / 1000, 0.05);
+        state.lastFrame = timestamp;
+        updateRoundClock(timestamp);
+        if (!state.gameFinished) {
+          const frozen = timestamp < state.frozenUntil;
+          if (frozen) {
+            parentToken.classList.add("frozen");
+          } else {
+            if (parentToken.classList.contains("frozen")) {
+              parentToken.classList.remove("frozen");
+              childHint.innerHTML = "Move the mouse over grass to toss <strong>trash</strong>. Tap the lawn to toss on touch.";
+              boardHint.textContent = "MOVE MOUSE OR PRESS ARROW KEYS";
+              updateStatus("Parent thawed! The lawn is yours again.", "good");
+            }
+            const previousX = state.x;
+            const previousY = state.y;
+            let dx = 0;
+            let dy = 0;
+            if (state.keys.has("ArrowLeft") || state.keys.has("a")) dx--;
+            if (state.keys.has("ArrowRight") || state.keys.has("d")) dx++;
+            if (state.keys.has("ArrowUp") || state.keys.has("w")) dy--;
+            if (state.keys.has("ArrowDown") || state.keys.has("s")) dy++;
+            if (dx || dy) {
+              const magnitude = Math.hypot(dx, dy);
+              setParentPosition(state.x + dx / magnitude * speed * dt, state.y + dy / magnitude * speed * dt);
+              state.targetX = state.x;
+              state.targetY = state.y;
+            } else {
+              moveTowardTarget(dt);
+            }
+            eraseParentTrail({ x: previousX, y: previousY }, { x: state.x, y: state.y });
+          }
+          renderBomb();
+          updateCooldown(timestamp);
+        }
+        requestAnimationFrame(frame);
+      }
+
+      function boardPoint(event) {
+        const rect = board.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      }
+
+      board.addEventListener("pointermove", event => {
+        if (state.gameFinished || state.countdownEndsAt > performance.now() || event.pointerType !== "mouse" || state.bombArmed) return;
+        if (bombButton.contains(event.target)) return;
+        const point = boardPoint(event);
+        paintStroke(state.lastPaintPoint || point, point);
+        state.lastPaintPoint = point;
+      });
+      board.addEventListener("pointerleave", () => {
+        state.lastPaintPoint = null;
+      });
+
+      board.addEventListener("pointerdown", event => {
+        if (state.gameFinished || state.countdownEndsAt > performance.now()) return;
+        if (event.button !== undefined && event.button !== 0) return;
+        if (bombButton.contains(event.target)) return;
+        const point = boardPoint(event);
+        if (state.bombArmed) {
+          dropBomb(point.x, point.y);
+          return;
+        }
+        const touch = event.pointerType === "touch";
+        const split = point.x < board.clientWidth / 2;
+        if (touch && !split) {
+          if (performance.now() < state.frozenUntil) return;
+          const position = clampPosition(point.x, point.y);
+          state.targetX = position.x;
+          state.targetY = position.y;
+        } else {
+          paintStroke(point, point);
+          state.lastPaintPoint = point;
+        }
+      });
+
+      bombButton.addEventListener("click", armBomb);
+      playButton.addEventListener("click", () => {
+        startScreen.hidden = true;
+        playScreen.hidden = false;
+        app.classList.add("playing");
+        document.body.classList.add("playing");
+        resetRound();
+      });
+
+      window.addEventListener("keydown", event => {
+        const movementKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "a", "d", "w", "s"];
+        if (movementKeys.includes(event.key)) {
+          event.preventDefault();
+          if (!state.gameFinished && state.countdownEndsAt <= performance.now() && performance.now() >= state.frozenUntil) state.keys.add(event.key);
+        }
+        if (event.code === "Space" && !state.gameFinished && state.countdownEndsAt <= performance.now() && document.activeElement !== bombButton) {
+          event.preventDefault();
+          armBomb();
+        }
+      });
+      window.addEventListener("keyup", event => state.keys.delete(event.key));
+      window.addEventListener("blur", () => state.keys.clear());
+      playAgainButton.addEventListener("click", resetRound);
+
+      function resetRound() {
+        state.keys.clear();
+        state.lastPaintPoint = null;
+        state.hasSeededTrash = false;
+        state.coverage = { columns: 0, rows: 0, mask: new Uint8Array(0), covered: 0 };
+        state.x = 0;
+        state.y = 0;
+        state.targetX = 0;
+        state.targetY = 0;
+        state.bombArmed = false;
+        state.cooldownUntil = 0;
+        state.frozenUntil = 0;
+        state.roundEndsAt = 0;
+        state.countdownEndsAt = performance.now() + 3000;
+        state.countdownValue = "3";
+        state.gameFinished = false;
+        state.lastCleanMessage = 0;
+        if (state.bomb) state.bomb.element.remove();
+        state.bomb = null;
+        parentToken.classList.remove("frozen");
+        board.classList.remove("bomb-armed");
+        bombButton.classList.remove("armed");
+        bombButton.disabled = false;
+        bombButton.setAttribute("aria-label", "Activate Stink Bomb");
+        bombTitle.textContent = "STINK BOMB";
+        bombCaption.textContent = "Tap to arm · 15s cooldown";
+        cooldownBar.style.transform = "scaleX(0)";
+        resultScreen.hidden = true;
+        countdownScreen.hidden = false;
+        countdownNumber.textContent = "3";
+        countdownNumber.style.animation = "";
+        boardHint.textContent = "MOVE MOUSE OR PRESS ARROW KEYS";
+        updateStatus("Game ready.");
+        roundClock.textContent = "1:00";
+        roundClock.classList.remove("urgent");
+        resizeBoard();
+        seedStartingTrash();
+      }
+
+      function resizeBoard() {
+        const { width, height } = bounds();
+        if (!width || !height) return;
+        rebuildCoverage();
+        if (!state.x) {
+          setParentPosition(width * 0.9, height * 0.58);
+          state.targetX = state.x;
+          state.targetY = state.y;
+        } else {
+          setParentPosition(state.x, state.y);
+          state.targetX = clampPosition(state.targetX, state.targetY).x;
+          state.targetY = clampPosition(state.targetX, state.targetY).y;
+        }
+      }
+      new ResizeObserver(resizeBoard).observe(board);
+      resizeBoard();
+      requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
